@@ -228,4 +228,46 @@ function render() {
         audio.src = a.url;
 
         box.insertBefore(audio, box.querySelector(".actions"));
-        audioList.a
+        audioList.appendChild(box);
+    });
+}
+
+/* 共通カード */
+function createBox(title, index, type) {
+    const box = document.createElement("div");
+    box.className = "media-box";
+
+    const h3 = document.createElement("h3");
+    h3.textContent = title;
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "編集";
+    editBtn.onclick = () => editItem(type, index);
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "削除";
+    delBtn.onclick = () => deleteItem(type, index);
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    box.appendChild(h3);
+    box.appendChild(actions);
+
+    return box;
+}
+
+function extractYouTubeID(url) {
+    const reg = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/;
+    const m = url.match(reg);
+    return m ? m[1] : null;
+}
+
+render();
+</script>
+
+</body>
+</html>
