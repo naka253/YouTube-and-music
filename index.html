@@ -1,19 +1,231 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>YouTube埋め込み</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メディアアプリ</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: sans-serif;
+    background: #f5f5f5;
+}
+
+/* ハンバーガー */
+.menu-btn {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    width: 30px;
+    cursor: pointer;
+    z-index: 1001;
+}
+.menu-btn span {
+    display: block;
+    height: 4px;
+    background: #333;
+    margin: 5px 0;
+}
+
+/* サイドバー */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 260px;
+    height: 100%;
+    background: #111;
+    color: white;
+    transition: 0.3s;
+    padding-top: 80px;
+}
+.sidebar.active {
+    left: 0;
+}
+
+.menu-item {
+    padding: 18px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+/* コンテンツ */
+.content {
+    padding: 80px 20px;
+}
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* カード */
+.media-box {
+    max-width: 600px;
+    margin: 20px auto;
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.media-box h3 {
+    margin-bottom: 10px;
+}
+
+/* メディア */
+iframe { width: 100%; height: 315px; border-radius: 10px; }
+audio { width: 100%; }
+
+/* 入力 */
+.input-area {
+    max-width: 600px;
+    margin: 10px auto;
+    display: flex;
+    gap: 10px;
+}
+
+input { flex: 1; padding: 10px; }
+button { padding: 8px 10px; cursor: pointer; }
+
+/* 操作ボタン */
+.actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+.actions button {
+    flex: 1;
+}
+
+/* タイトル */
+.section-title {
+    text-align: center;
+    font-size: 22px;
+}
+</style>
 </head>
+
 <body>
 
-  <h1>動画</h1>
+<div class="menu-btn" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+</div>
 
-  <iframe width="560" height="315"
-    src="https://www.youtube.com/embed/2vzUbYIss0k?si=n2fiqKsC9Vde7YNB"
-    title="YouTube video"
-    frameborder="0"
-    allowfullscreen>
-  </iframe>
+<div class="sidebar" id="sidebar">
+    <div class="menu-item" onclick="showSection('video')">動画</div>
+    <div class="menu-item" onclick="showSection('audio')">音声</div>
+</div>
 
-</body>
-</html>
+<div class="content">
+
+<div id="video" class="section active">
+    <div class="section-title">動画</div>
+    <div class="input-area">
+        <input id="videoTitle" placeholder="タイトル">
+        <input id="videoUrl" placeholder="YouTube URL">
+        <button onclick="addVideo()">追加</button>
+    </div>
+    <div id="videoList"></div>
+</div>
+
+<div id="audio" class="section">
+    <div class="section-title">音声</div>
+    <div class="input-area">
+        <input id="audioTitle" placeholder="タイトル">
+        <input id="audioUrl" placeholder="音声URL">
+        <button onclick="addAudio()">追加</button>
+    </div>
+    <div id="audioList"></div>
+</div>
+
+</div>
+
+<script>
+let videos = JSON.parse(localStorage.getItem("videos")) || [];
+let audios = JSON.parse(localStorage.getItem("audios")) || [];
+
+function saveData() {
+    localStorage.setItem("videos", JSON.stringify(videos));
+    localStorage.setItem("audios", JSON.stringify(audios));
+}
+
+function toggleMenu() {
+    document.getElementById("sidebar").classList.toggle("active");
+}
+
+function showSection(type) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(type).classList.add("active");
+    document.getElementById("sidebar").classList.remove("active");
+}
+
+/* 追加 */
+function addVideo() {
+    const title = document.getElementById("videoTitle").value || "無題";
+    const url = document.getElementById("videoUrl").value;
+
+    videos.push({ title, url });
+    saveData();
+    render();
+}
+
+function addAudio() {
+    const title = document.getElementById("audioTitle").value || "無題";
+    const url = document.getElementById("audioUrl").value;
+
+    audios.push({ title, url });
+    saveData();
+    render();
+}
+
+/* 削除 */
+function deleteItem(type, index) {
+    if (type === "video") videos.splice(index, 1);
+    else audios.splice(index, 1);
+
+    saveData();
+    render();
+}
+
+/* 編集 */
+function editItem(type, index) {
+    let item = type === "video" ? videos[index] : audios[index];
+
+    const newTitle = prompt("新しいタイトル", item.title);
+    const newUrl = prompt("新しいURL", item.url);
+
+    if (newTitle !== null) item.title = newTitle;
+    if (newUrl !== null) item.url = newUrl;
+
+    saveData();
+    render();
+}
+
+/* 描画 */
+function render() {
+    const videoList = document.getElementById("videoList");
+    const audioList = document.getElementById("audioList");
+
+    videoList.innerHTML = "";
+    audioList.innerHTML = "";
+
+    videos.forEach((v, i) => {
+        const id = extractYouTubeID(v.url);
+        if (!id) return;
+
+        const box = createBox(v.title, i, "video");
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.youtube.com/embed/${id}`;
+
+        box.insertBefore(iframe, box.querySelector(".actions"));
+        videoList.appendChild(box);
+    });
+
+    audios.forEach((a, i) => {
+        const box = createBox(a.title, i, "audio");
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.src = a.url;
+
+        box.insertBefore(audio, box.querySelector(".actions"));
+        audioList.a
